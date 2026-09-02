@@ -12,7 +12,8 @@ public class HibernateUtil {
     public static SessionFactory getSessionFactory() {
         if (sessionFactory == null) {
             Configuration configuration = new Configuration()
-                    .configure("hibernate.cfg.xml");
+                    .configure("hibernate.cfg.xml")
+                    .addAnnotatedClass(UserEntity.class);
 
             sessionFactory = configuration.buildSessionFactory();
         }
