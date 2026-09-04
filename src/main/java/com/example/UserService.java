@@ -18,148 +18,135 @@ public class UserService {
         this.userDao = userDao;
     }
 
-    public ServiceResult<UserEntity> createUser(String name, String email, Integer age) {
+    public UserEntity createUser(String name, String email, Integer age) {
         log.info("Создание пользователя: name={}, email={}, age={}", name, email, age);
 
         if (!UserValidator.validateUserData(name, email, age)) {
-            return ServiceResult.error("Некорректные данные: проверьте имя, email или возраст.");
+            throw new IllegalArgumentException("Некорректные данные: проверьте имя, email или возраст.");
         }
 
         try {
             UserEntity entity = new UserEntity(name, email, age);
             userDao.save(entity);
             log.info("Пользователь успешно сохранён: {}", entity);
-            return ServiceResult.success(entity);
+            return entity;
 
         } catch (ConstraintViolationException e) {
             log.warn("Email уже существует: {}", email);
-            return ServiceResult.error("Пользователь с таким email уже существует.");
+            throw new IllegalArgumentException("Пользователь с таким email уже существует.");
 
         } catch (JDBCException e) {
             log.error("База данных недоступна", e);
-            return ServiceResult.error("Сервис временно недоступен. Попробуйте позже.");
+            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
 
         } catch (HibernateException e) {
             log.error("Ошибка Hibernate при сохранении", e);
-            return ServiceResult.error("Ошибка при сохранении пользователя.");
+            throw new RuntimeException("Ошибка при сохранении пользователя.");
 
         } catch (Exception e) {
             log.error("Непредвиденная ошибка при сохранении", e);
-            return ServiceResult.error("Внутренняя ошибка сервера.");
+            throw new RuntimeException("Внутренняя ошибка сервера.");
         }
     }
 
-    public ServiceResult<UserEntity> findUserById(Integer id) {
+    public UserEntity findUserById(Integer id) {
         log.info("Поиск пользователя по id={}", id);
 
         if (id == null || id <= 0) {
-            log.warn("Некорректный id={}", id);
-            return ServiceResult.error("ID должен быть положительным числом.");
+            throw new IllegalArgumentException("ID должен быть положительным числом.");
         }
 
         try {
             UserEntity user = userDao.findById(id);
             if (user == null) {
                 log.warn("Пользователь с id={} не найден", id);
-                return ServiceResult.error("Пользователь с ID " + id + " не найден.");
+                throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
             }
 
             log.info("Пользователь найден: {}", user);
-            return ServiceResult.success(user);
+            return user;
 
         } catch (NoResultException e) {
             log.warn("Пользователь с id={} не найден", id);
-            return ServiceResult.error("Пользователь с ID " + id + " не найден.");
+            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
 
         } catch (JDBCException e) {
             log.error("База данных недоступна", e);
-            return ServiceResult.error("Сервис временно недоступен. Попробуйте позже.");
+            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
 
         } catch (HibernateException e) {
             log.error("Ошибка Hibernate при поиске", e);
-            return ServiceResult.error("Ошибка при поиске пользователя.");
-
-        } catch (Exception e) {
-            log.error("Непредвиденная ошибка", e);
-            return ServiceResult.error("Внутренняя ошибка сервера.");
+            throw new RuntimeException("Ошибка при поиске пользователя.");
         }
     }
 
-    public ServiceResult<UserEntity> findUserByEmail(String email) {
+    public UserEntity findUserByEmail(String email) {
         log.info("Поиск пользователя по email={}", email);
 
         if (email == null || email.isBlank()) {
-            log.warn("Email не может быть пустым");
-            return ServiceResult.error("Email не может быть пустым.");
+            throw new IllegalArgumentException("Email не может быть пустым.");
         }
 
         try {
             UserEntity user = userDao.findByEmail(email);
             if (user == null) {
                 log.warn("Пользователь с email {} не найден", email);
-                return ServiceResult.error("Пользователь с email " + email + " не найден.");
+                throw new IllegalArgumentException("Пользователь с email " + email + " не найден.");
             }
 
             log.info("Пользователь найден: {}", user);
-            return ServiceResult.success(user);
+            return user;
 
         } catch (NoResultException e) {
             log.warn("Пользователь с email {} не найден", email);
-            return ServiceResult.error("Пользователь с email " + email + " не найден.");
+            throw new IllegalArgumentException("Пользователь с email " + email + " не найден.");
 
         } catch (JDBCException e) {
             log.error("База данных недоступна", e);
-            return ServiceResult.error("Сервис временно недоступен. Попробуйте позже.");
+            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
 
         } catch (HibernateException e) {
             log.error("Ошибка Hibernate при поиске", e);
-            return ServiceResult.error("Ошибка при поиске пользователя.");
+            throw new RuntimeException("Ошибка при поиске пользователя.");
 
-        } catch (Exception e) {
-            log.error("Непредвиденная ошибка", e);
-            return ServiceResult.error("Внутренняя ошибка сервера.");
         }
     }
 
-    public ServiceResult<List<UserEntity>> findAllUsers() {
+    public List<UserEntity> findAllUsers() {
         log.info("Поиск всех пользователей");
 
         try {
             List<UserEntity> users = userDao.findAll();
             log.info("Найдено пользователей: {}", users.size());
-            return ServiceResult.success(users);
+            return users;
 
         } catch (JDBCException e) {
             log.error("База данных недоступна", e);
-            return ServiceResult.error("Сервис временно недоступен. Попробуйте позже.");
+            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
 
         } catch (HibernateException e) {
             log.error("Ошибка Hibernate при поиске", e);
-            return ServiceResult.error("Ошибка при получении списка пользователей.");
+            throw new RuntimeException("Ошибка при получении списка пользователей.");
 
-        } catch (Exception e) {
-            log.error("Непредвиденная ошибка", e);
-            return ServiceResult.error("Внутренняя ошибка сервера.");
         }
     }
 
-    public ServiceResult<UserEntity> updateUserById(Integer id, String name, String email, Integer age) {
+    public UserEntity updateUserById(Integer id, String name, String email, Integer age) {
         log.info("Изменение пользователя по id={}, name={}, email={}, age={}", id, name, email, age);
 
         if (id == null || id <= 0) {
-            log.warn("Некорректный id={}", id);
-            return ServiceResult.error("ID должен быть положительным числом.");
+            throw new IllegalArgumentException("ID должен быть положительным числом.");
         }
 
         if (!UserValidator.validateUserData(name, email, age)) {
-            return ServiceResult.error("Некорректные данные: проверьте имя, email или возраст.");
+            throw new IllegalArgumentException("Некорректные данные: проверьте имя, email или возраст.");
         }
 
         try {
             UserEntity fromDb = userDao.findById(id);
             if (fromDb == null) {
                 log.warn("Пользователь с id={} не найден", id);
-                return ServiceResult.error("Пользователь с ID " + id + " не найден.");
+                throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
             }
 
             fromDb.setName(name);
@@ -168,48 +155,44 @@ public class UserService {
 
             UserEntity updated = userDao.update(fromDb);
             log.info("Пользователь успешно изменён: {}", updated);
-            return ServiceResult.success(updated);
+            return updated;
 
         } catch (NoResultException e) {
             log.warn("Пользователь с id={} не найден", id);
-            return ServiceResult.error("Пользователь с ID " + id + " не найден.");
+            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
 
         } catch (ConstraintViolationException e) {
             log.warn("Email занят другим пользователем: {}", email);
-            return ServiceResult.error("Email " + email + " уже используется другим пользователем.");
+            throw new IllegalArgumentException("Email " + email + " уже используется другим пользователем.");
 
         } catch (JDBCException e) {
             log.error("База данных недоступна", e);
-            return ServiceResult.error("Сервис временно недоступен. Попробуйте позже.");
+            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
 
         } catch (HibernateException e) {
             log.error("Ошибка Hibernate при обновлении", e);
-            return ServiceResult.error("Ошибка при обновлении пользователя.");
+            throw new RuntimeException("Ошибка при обновлении пользователя.");
 
-        } catch (Exception e) {
-            log.error("Непредвиденная ошибка при обновлении", e);
-            return ServiceResult.error("Внутренняя ошибка сервера.");
         }
     }
 
-    public ServiceResult<UserEntity> updateUserByEmail(String currentEmail, String newName, String newEmail, Integer newAge) {
+    public UserEntity updateUserByEmail(String currentEmail, String newName, String newEmail, Integer newAge) {
         log.info("Изменение пользователя по email={}, name={}, email={}, age={}",
                 currentEmail, newName, newEmail, newAge);
 
         if (currentEmail == null || currentEmail.isBlank()) {
-            log.warn("Текущий email не может быть пустым");
-            return ServiceResult.error("Текущий email не может быть пустым.");
+            throw new IllegalArgumentException("Текущий email не может быть пустым.");
         }
 
         if (!UserValidator.validateUserData(newName, newEmail, newAge)) {
-            return ServiceResult.error("Некорректные данные: проверьте имя, email или возраст.");
+            throw new IllegalArgumentException("Некорректные данные: проверьте имя, email или возраст.");
         }
 
         try {
             UserEntity fromDb = userDao.findByEmail(currentEmail);
             if (fromDb == null) {
                 log.warn("Пользователь с email {} не найден", currentEmail);
-                return ServiceResult.error("Пользователь с email " + currentEmail + " не найден.");
+                throw new IllegalArgumentException("Пользователь с email " + currentEmail + " не найден.");
             }
 
             fromDb.setName(newName);
@@ -218,64 +201,56 @@ public class UserService {
 
             UserEntity updated = userDao.update(fromDb);
             log.info("Пользователь успешно обновлён: {}", updated);
-            return ServiceResult.success(updated);
+            return updated;
 
         } catch (NoResultException e) {
             log.warn("Пользователь с email {} не найден", currentEmail);
-            return ServiceResult.error("Пользователь с email " + currentEmail + " не найден.");
+            throw new IllegalArgumentException("Пользователь с email " + currentEmail + " не найден.");
 
         } catch (ConstraintViolationException e) {
             log.warn("Email уже занят: {}", newEmail);
-            return ServiceResult.error("Email " + newEmail + " уже используется другим пользователем.");
+            throw new IllegalArgumentException("Email " + newEmail + " уже используется другим пользователем.");
 
         } catch (JDBCException e) {
             log.error("База данных недоступна", e);
-            return ServiceResult.error("Сервис временно недоступен. Попробуйте позже.");
+            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
 
         } catch (HibernateException e) {
             log.error("Ошибка Hibernate при обновлении", e);
-            return ServiceResult.error("Ошибка при обновлении пользователя.");
+            throw new RuntimeException("Ошибка при обновлении пользователя.");
 
-        } catch (Exception e) {
-            log.error("Непредвиденная ошибка при обновлении", e);
-            return ServiceResult.error("Внутренняя ошибка сервера.");
         }
     }
 
-    public ServiceResult<Boolean> deleteUserById(Integer id) {
+    public void deleteUserById(Integer id) {
         log.info("Удаление пользователя по id={}", id);
 
         if (id == null || id <= 0) {
-            log.warn("Некорректный id={}", id);
-            return ServiceResult.error("ID должен быть положительным числом.");
+            throw new IllegalArgumentException("ID должен быть положительным числом.");
         }
 
         try {
             UserEntity user = userDao.findById(id);
             if (user == null) {
                 log.warn("Пользователь с id={} не найден", id);
-                return ServiceResult.error("Пользователь с ID " + id + " не найден.");
+                throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
             }
 
             userDao.delete(user);
             log.info("Пользователь с id={} удалён", id);
-            return ServiceResult.success(true);
 
         } catch (NoResultException e) {
             log.warn("Пользователь с id={} не найден", id);
-            return ServiceResult.error("Пользователь с ID " + id + " не найден.");
+            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
 
         } catch (JDBCException e) {
             log.error("База данных недоступна", e);
-            return ServiceResult.error("Сервис временно недоступен. Попробуйте позже.");
+            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
 
         } catch (HibernateException e) {
             log.error("Ошибка Hibernate при удалении", e);
-            return ServiceResult.error("Ошибка при удалении пользователя.");
+            throw new RuntimeException("Ошибка при удалении пользователя.");
 
-        } catch (Exception e) {
-            log.error("Непредвиденная ошибка при удалении", e);
-            return ServiceResult.error("Внутренняя ошибка сервера.");
         }
     }
 }
