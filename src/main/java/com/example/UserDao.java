@@ -45,59 +45,50 @@ public class UserDao {
         }
     }
 
-    public void save(UserEntity user) {
-        Transaction transaction;
+    public UserEntity save(UserEntity user) {
+        Transaction transaction = null;
         try (Session session = sessionFactory.openSession()) {
             transaction = session.getTransaction();
             transaction.begin();
             session.persist(user);
             transaction.commit();
+            return user;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw e;
         }
     }
 
     public UserEntity update(UserEntity user) {
-        Transaction transaction;
+        Transaction transaction = null;
         try (Session session = sessionFactory.openSession()) {
             transaction = session.getTransaction();
             transaction.begin();
             UserEntity updatedUser = session.merge(user);
             transaction.commit();
             return updatedUser;
-        }
-    }
-//тут логика сервисная
-    public UserEntity updateById(Integer id, UserEntity user) {
-        Transaction transaction;
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.getTransaction();
-            transaction.begin();
-            UserEntity userToUpdate = session.find(UserEntity.class, id);
-            userToUpdate.setName(user.getName());
-            userToUpdate.setEmail(user.getEmail());
-            userToUpdate.setAge(user.getAge());
-            transaction.commit();
-            return userToUpdate;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw e;
         }
     }
 
     public void delete(UserEntity user) {
-        Transaction transaction;
+        Transaction transaction = null;
         try (Session session = sessionFactory.openSession()) {
             transaction = session.getTransaction();
             transaction.begin();
             session.remove(user);
             transaction.commit();
-        }
-    }
-//логика сервисная
-    public void deleteById(Integer id) {
-        Transaction transaction;
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.getTransaction();
-            transaction.begin();
-            UserEntity userToDelete = session.find(UserEntity.class, id);
-            session.remove(userToDelete);
-            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw e;
         }
     }
 }
