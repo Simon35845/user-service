@@ -1,5 +1,6 @@
 package com.example;
 
+import jakarta.persistence.NoResultException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +18,7 @@ public class UserService {
     public UserEntity createUser(String name, String email, Integer age) throws UserServiceException {
         log.info("Создание пользователя: name={}, email={}, age={}.", name, email, age);
         try {
-            if (userDao.findByEmail(email) != null) {
+            if (userDao.existsByEmail(email)) {
                 log.warn("Пользователь с email={} уже существует.", email);
                 throw new IllegalArgumentException("Пользователь с email=%s уже существует.".formatted(email));
             }
@@ -57,15 +58,11 @@ public class UserService {
         log.info("Поиск пользователя по email={}", email);
         try {
             UserEntity user = userDao.findByEmail(email);
-            if (user == null) {
-                log.warn("Пользователь с email={} не найден.", email);
-                throw new IllegalArgumentException("Пользователь с email=%s не найден.".formatted(email));
-            }
-
             log.info("Пользователь найден: {}.", user);
             return user;
-        } catch (IllegalArgumentException e) {
-            throw new UserServiceException(e.getMessage());
+        } catch (NoResultException e) {
+            log.warn("Пользователь с email={} не найден.", email);
+            throw new UserServiceException("Пользователь с email=%s не найден.".formatted(email));
         } catch (Exception e) {
             log.error("Ошибка при поиске пользователя по email={}.", email, e);
             throw new UserServiceException("Внутренняя ошибка сервера.");
@@ -92,7 +89,7 @@ public class UserService {
                 log.warn("Пользователь с id={} не найден.", id);
                 throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
             }
-            if (!user.getEmail().equals(email) && userDao.findByEmail(email) != null) {
+            if (!user.getEmail().equals(email) && userDao.existsByEmail(email)) {
                 log.warn("Пользователь с email={} уже существует.", email);
                 throw new IllegalArgumentException("Пользователь с email=%s уже существует.".formatted(email));
             }
@@ -122,7 +119,7 @@ public class UserService {
 
             userDao.delete(user);
             log.info("Пользователь с id={} удалён.", id);
-        }catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             throw new UserServiceException(e.getMessage());
         } catch (Exception e) {
             log.error("Ошибка при удалении пользователя с id={}.", id, e);

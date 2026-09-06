@@ -45,6 +45,20 @@ public class UserDao {
         }
     }
 
+    public boolean existsByEmail(String email){
+        try (Session session = sessionFactory.openSession()) {
+            String queryString = """
+                    SELECT EXISTS
+                    (SELECT 1 FROM UserEntity u
+                    WHERE u.email = :email)
+                    """;
+            return session
+                    .createQuery(queryString, Boolean.class)
+                    .setParameter("email", email)
+                    .getSingleResult();
+        }
+    }
+
     public UserEntity save(UserEntity user) {
         Transaction transaction = null;
         try (Session session = sessionFactory.openSession()) {
