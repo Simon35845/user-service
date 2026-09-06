@@ -1,8 +1,16 @@
-package com.example;
+package com.example.console;
 
 import java.util.Scanner;
 import java.util.function.Predicate;
 
+/**
+ * Класс для обработки консольного ввода с проверкой ввода на корректность.
+ * Имеется возможность остановки работы приложения при помощи специальных слов.
+ *
+ * @author FlameFlow2001 (Shundev Kirill): методы checkShutdownCommand, readString, readInteger
+ *
+ * @author Simon35845: методы readValidString, readValidInteger
+ */
 public class ConsoleHelper {
 
     private final Scanner scanner;

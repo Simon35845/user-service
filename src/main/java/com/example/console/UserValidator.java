@@ -1,5 +1,10 @@
-package com.example;
+package com.example.console;
 
+/**
+ * Класс для валидации консольного ввода
+ *
+ * @author Yushinova (TATYANA YUSHINOVA)
+ */
 public class UserValidator {
 
     public boolean isIdValid(Integer id) {

@@ -1,11 +1,19 @@
-package com.example;
+package com.example.service;
 
+import com.example.dao.UserDao;
+import com.example.entity.UserEntity;
 import jakarta.persistence.NoResultException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+/**
+ * Класс с бизнес-логикой приложения. Предоставляет безопасный доступ к CRUD методам UserDao с
+ * обработкой исключений и логированием.
+ *
+ * @author Yushinova (TATYANA YUSHINOVA)
+ */
 public class UserService {
 
     private final UserDao userDao;

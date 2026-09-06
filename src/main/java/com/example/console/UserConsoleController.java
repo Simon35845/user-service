@@ -1,7 +1,17 @@
-package com.example;
+package com.example.console;
+
+import com.example.entity.UserEntity;
+import com.example.service.UserService;
+import com.example.service.UserServiceException;
 
 import java.util.List;
 
+/**
+ * Этот класс используется для создания, чтения, изменения, удаления данных пользователя с использованием
+ * консольного интерфейса. Поддерживается валидация консольного ввода.
+ *
+ * @author FlameFlow2001 (Shundev Kirill)
+ */
 public class UserConsoleController {
 
     private final UserService userService;

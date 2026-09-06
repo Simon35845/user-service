@@ -1,9 +1,15 @@
-package com.example;
+package com.example.entity;
 
+import com.example.utils.DateTimeUtil;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * Этот класс является объектным представлением таблицы "users" в БД.
+ *
+ * @author Simon35845
+ */
 @Entity
 @Table(name = "users")
 public class UserEntity {

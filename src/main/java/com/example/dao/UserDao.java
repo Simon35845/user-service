@@ -1,11 +1,17 @@
-package com.example;
+package com.example.dao;
 
+import com.example.entity.UserEntity;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import java.util.List;
 
+/**
+ * Этот класс предназначен для выполнения CRUD операций в БД с применением Hibernate.
+ *
+ * @author Simon35845
+ */
 public class UserDao {
 
     private final SessionFactory sessionFactory;
