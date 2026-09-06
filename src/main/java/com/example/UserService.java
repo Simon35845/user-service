@@ -1,9 +1,5 @@
 package com.example;
 
-import jakarta.persistence.NoResultException;
-import org.hibernate.HibernateException;
-import org.hibernate.JDBCException;
-import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,239 +14,119 @@ public class UserService {
         this.userDao = userDao;
     }
 
-    public UserEntity createUser(String name, String email, Integer age) {
-        log.info("Создание пользователя: name={}, email={}, age={}", name, email, age);
-
-        if (!UserValidator.validateUserData(name, email, age)) {
-            throw new IllegalArgumentException("Некорректные данные: проверьте имя, email или возраст.");
-        }
-
+    public UserEntity createUser(String name, String email, Integer age) throws UserServiceException {
+        log.info("Создание пользователя: name={}, email={}, age={}.", name, email, age);
         try {
-            UserEntity entity = new UserEntity(name, email, age);
-            userDao.save(entity);
-            log.info("Пользователь успешно сохранён: {}", entity);
-            return entity;
+            if (userDao.findByEmail(email) != null) {
+                log.warn("Пользователь с email={} уже существует.", email);
+                throw new IllegalArgumentException("Пользователь с email=%s уже существует.".formatted(email));
+            }
 
-        } catch (ConstraintViolationException e) {
-            log.warn("Email уже существует: {}", email);
-            throw new IllegalArgumentException("Пользователь с таким email уже существует.");
-
-        } catch (JDBCException e) {
-            log.error("База данных недоступна", e);
-            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
-
-        } catch (HibernateException e) {
-            log.error("Ошибка Hibernate при сохранении", e);
-            throw new RuntimeException("Ошибка при сохранении пользователя.");
-
+            UserEntity userToSave = new UserEntity(name, email, age);
+            UserEntity savedUser = userDao.save(userToSave);
+            log.info("Пользователь успешно сохранён: {}.", savedUser);
+            return savedUser;
+        } catch (IllegalArgumentException e) {
+            throw new UserServiceException(e.getMessage());
         } catch (Exception e) {
-            log.error("Непредвиденная ошибка при сохранении", e);
-            throw new RuntimeException("Внутренняя ошибка сервера.");
+            log.error("Ошибка при создании пользователя с email={}.", email, e);
+            throw new UserServiceException("Внутренняя ошибка сервера.");
         }
     }
 
-    public UserEntity findUserById(Integer id) {
-        log.info("Поиск пользователя по id={}", id);
-
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID должен быть положительным числом.");
-        }
-
+    public UserEntity findUserById(Integer id) throws UserServiceException {
+        log.info("Поиск пользователя по id={}.", id);
         try {
             UserEntity user = userDao.findById(id);
             if (user == null) {
-                log.warn("Пользователь с id={} не найден", id);
-                throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
+                log.warn("Пользователь с id={} не найден.", id);
+                throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
             }
 
-            log.info("Пользователь найден: {}", user);
+            log.info("Пользователь найден: {}.", user);
             return user;
-
-        } catch (NoResultException e) {
-            log.warn("Пользователь с id={} не найден", id);
-            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
-
-        } catch (JDBCException e) {
-            log.error("База данных недоступна", e);
-            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
-
-        } catch (HibernateException e) {
-            log.error("Ошибка Hibernate при поиске", e);
-            throw new RuntimeException("Ошибка при поиске пользователя.");
+        } catch (IllegalArgumentException e) {
+            throw new UserServiceException(e.getMessage());
+        } catch (Exception e) {
+            log.error("Ошибка при поиске пользователя по id={}.", id, e);
+            throw new UserServiceException("Внутренняя ошибка сервера.");
         }
     }
 
-    public UserEntity findUserByEmail(String email) {
+    public UserEntity findUserByEmail(String email) throws UserServiceException {
         log.info("Поиск пользователя по email={}", email);
-
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email не может быть пустым.");
-        }
-
         try {
             UserEntity user = userDao.findByEmail(email);
             if (user == null) {
-                log.warn("Пользователь с email {} не найден", email);
-                throw new IllegalArgumentException("Пользователь с email " + email + " не найден.");
+                log.warn("Пользователь с email={} не найден.", email);
+                throw new IllegalArgumentException("Пользователь с email=%s не найден.".formatted(email));
             }
 
-            log.info("Пользователь найден: {}", user);
+            log.info("Пользователь найден: {}.", user);
             return user;
-
-        } catch (NoResultException e) {
-            log.warn("Пользователь с email {} не найден", email);
-            throw new IllegalArgumentException("Пользователь с email " + email + " не найден.");
-
-        } catch (JDBCException e) {
-            log.error("База данных недоступна", e);
-            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
-
-        } catch (HibernateException e) {
-            log.error("Ошибка Hibernate при поиске", e);
-            throw new RuntimeException("Ошибка при поиске пользователя.");
-
+        } catch (IllegalArgumentException e) {
+            throw new UserServiceException(e.getMessage());
+        } catch (Exception e) {
+            log.error("Ошибка при поиске пользователя по email={}.", email, e);
+            throw new UserServiceException("Внутренняя ошибка сервера.");
         }
     }
 
-    public List<UserEntity> findAllUsers() {
-        log.info("Поиск всех пользователей");
-
+    public List<UserEntity> getAllUsers() throws UserServiceException {
+        log.info("Вывод всех пользователей.");
         try {
             List<UserEntity> users = userDao.findAll();
-            log.info("Найдено пользователей: {}", users.size());
+            log.info("Найдено {} пользователей: .", users.size());
             return users;
-
-        } catch (JDBCException e) {
-            log.error("База данных недоступна", e);
-            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
-
-        } catch (HibernateException e) {
-            log.error("Ошибка Hibernate при поиске", e);
-            throw new RuntimeException("Ошибка при получении списка пользователей.");
-
+        } catch (Exception e) {
+            log.error("Ошибка при выводе всех пользователей.", e);
+            throw new UserServiceException("Внутренняя ошибка сервера.");
         }
     }
 
-    public UserEntity updateUserById(Integer id, String name, String email, Integer age) {
-        log.info("Изменение пользователя по id={}, name={}, email={}, age={}", id, name, email, age);
-
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID должен быть положительным числом.");
-        }
-
-        if (!UserValidator.validateUserData(name, email, age)) {
-            throw new IllegalArgumentException("Некорректные данные: проверьте имя, email или возраст.");
-        }
-
-        try {
-            UserEntity fromDb = userDao.findById(id);
-            if (fromDb == null) {
-                log.warn("Пользователь с id={} не найден", id);
-                throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
-            }
-
-            fromDb.setName(name);
-            fromDb.setEmail(email);
-            fromDb.setAge(age);
-
-            UserEntity updated = userDao.update(fromDb);
-            log.info("Пользователь успешно изменён: {}", updated);
-            return updated;
-
-        } catch (NoResultException e) {
-            log.warn("Пользователь с id={} не найден", id);
-            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
-
-        } catch (ConstraintViolationException e) {
-            log.warn("Email занят другим пользователем: {}", email);
-            throw new IllegalArgumentException("Email " + email + " уже используется другим пользователем.");
-
-        } catch (JDBCException e) {
-            log.error("База данных недоступна", e);
-            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
-
-        } catch (HibernateException e) {
-            log.error("Ошибка Hibernate при обновлении", e);
-            throw new RuntimeException("Ошибка при обновлении пользователя.");
-
-        }
-    }
-
-    public UserEntity updateUserByEmail(String currentEmail, String newName, String newEmail, Integer newAge) {
-        log.info("Изменение пользователя по email={}, name={}, email={}, age={}",
-                currentEmail, newName, newEmail, newAge);
-
-        if (currentEmail == null || currentEmail.isBlank()) {
-            throw new IllegalArgumentException("Текущий email не может быть пустым.");
-        }
-
-        if (!UserValidator.validateUserData(newName, newEmail, newAge)) {
-            throw new IllegalArgumentException("Некорректные данные: проверьте имя, email или возраст.");
-        }
-
-        try {
-            UserEntity fromDb = userDao.findByEmail(currentEmail);
-            if (fromDb == null) {
-                log.warn("Пользователь с email {} не найден", currentEmail);
-                throw new IllegalArgumentException("Пользователь с email " + currentEmail + " не найден.");
-            }
-
-            fromDb.setName(newName);
-            fromDb.setEmail(newEmail);
-            fromDb.setAge(newAge);
-
-            UserEntity updated = userDao.update(fromDb);
-            log.info("Пользователь успешно обновлён: {}", updated);
-            return updated;
-
-        } catch (NoResultException e) {
-            log.warn("Пользователь с email {} не найден", currentEmail);
-            throw new IllegalArgumentException("Пользователь с email " + currentEmail + " не найден.");
-
-        } catch (ConstraintViolationException e) {
-            log.warn("Email уже занят: {}", newEmail);
-            throw new IllegalArgumentException("Email " + newEmail + " уже используется другим пользователем.");
-
-        } catch (JDBCException e) {
-            log.error("База данных недоступна", e);
-            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
-
-        } catch (HibernateException e) {
-            log.error("Ошибка Hibernate при обновлении", e);
-            throw new RuntimeException("Ошибка при обновлении пользователя.");
-
-        }
-    }
-
-    public void deleteUserById(Integer id) {
-        log.info("Удаление пользователя по id={}", id);
-
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("ID должен быть положительным числом.");
-        }
-
+    public UserEntity updateUserById(Integer id, String name, String email, Integer age) throws UserServiceException {
+        log.info("Изменение пользователя: id={} name={}, email={}, age={}.", id, name, email, age);
         try {
             UserEntity user = userDao.findById(id);
             if (user == null) {
-                log.warn("Пользователь с id={} не найден", id);
-                throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
+                log.warn("Пользователь с id={} не найден.", id);
+                throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
+            }
+            if (!user.getEmail().equals(email) && userDao.findByEmail(email) != null) {
+                log.warn("Пользователь с email={} уже существует.", email);
+                throw new IllegalArgumentException("Пользователь с email=%s уже существует.".formatted(email));
+            }
+
+            user.setName(name);
+            user.setEmail(email);
+            user.setAge(age);
+            UserEntity updatedUser = userDao.update(user);
+
+            log.info("Пользователь успешно изменён: {}.", updatedUser);
+            return updatedUser;
+        } catch (IllegalArgumentException e) {
+            throw new UserServiceException(e.getMessage());
+        } catch (Exception e) {
+            log.error("Ошибка при изменении пользователя с id={}.", id, e);
+            throw new UserServiceException("Внутренняя ошибка сервера.");
+        }
+    }
+
+    public void deleteUserById(Integer id) throws UserServiceException {
+        try {
+            UserEntity user = userDao.findById(id);
+            if (user == null) {
+                log.warn("Пользователь с id={} не найден.", id);
+                throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
             }
 
             userDao.delete(user);
-            log.info("Пользователь с id={} удалён", id);
-
-        } catch (NoResultException e) {
-            log.warn("Пользователь с id={} не найден", id);
-            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
-
-        } catch (JDBCException e) {
-            log.error("База данных недоступна", e);
-            throw new RuntimeException("Сервис временно недоступен. Попробуйте позже.");
-
-        } catch (HibernateException e) {
-            log.error("Ошибка Hibernate при удалении", e);
-            throw new RuntimeException("Ошибка при удалении пользователя.");
-
+            log.info("Пользователь с id={} удалён.", id);
+        }catch (IllegalArgumentException e) {
+            throw new UserServiceException(e.getMessage());
+        } catch (Exception e) {
+            log.error("Ошибка при удалении пользователя с id={}.", id, e);
+            throw new UserServiceException("Внутренняя ошибка сервера.");
         }
     }
 }
