@@ -3,6 +3,7 @@ package com.example.service;
 import com.example.dao.UserDao;
 import com.example.entity.UserEntity;
 import jakarta.persistence.NoResultException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,17 +27,13 @@ public class UserService {
     public UserEntity createUser(String name, String email, Integer age) throws UserServiceException {
         log.info("Создание пользователя: name={}, email={}, age={}.", name, email, age);
         try {
-            if (userDao.existsByEmail(email)) {
-                log.warn("Пользователь с email={} уже существует.", email);
-                throw new IllegalArgumentException("Пользователь с email=%s уже существует.".formatted(email));
-            }
-
             UserEntity userToSave = new UserEntity(name, email, age);
             UserEntity savedUser = userDao.save(userToSave);
             log.info("Пользователь успешно сохранён: {}.", savedUser);
             return savedUser;
-        } catch (IllegalArgumentException e) {
-            throw new UserServiceException(e.getMessage());
+        } catch (ConstraintViolationException e) {
+            log.warn("Пользователь с email={} уже существует.", email);
+            throw new UserServiceException("Пользователь с email=%s уже существует.".formatted(email));
         } catch (Exception e) {
             log.error("Ошибка при создании пользователя с email={}.", email, e);
             throw new UserServiceException("Внутренняя ошибка сервера.");
@@ -51,7 +48,6 @@ public class UserService {
                 log.warn("Пользователь с id={} не найден.", id);
                 throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
             }
-
             log.info("Пользователь найден: {}.", user);
             return user;
         } catch (IllegalArgumentException e) {
@@ -97,20 +93,18 @@ public class UserService {
                 log.warn("Пользователь с id={} не найден.", id);
                 throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
             }
-            if (!user.getEmail().equals(email) && userDao.existsByEmail(email)) {
-                log.warn("Пользователь с email={} уже существует.", email);
-                throw new IllegalArgumentException("Пользователь с email=%s уже существует.".formatted(email));
-            }
 
             user.setName(name);
             user.setEmail(email);
             user.setAge(age);
             UserEntity updatedUser = userDao.update(user);
-
             log.info("Пользователь успешно изменён: {}.", updatedUser);
             return updatedUser;
         } catch (IllegalArgumentException e) {
             throw new UserServiceException(e.getMessage());
+        } catch (ConstraintViolationException e) {
+            log.warn("Пользователь с email={} уже существует.", email);
+            throw new UserServiceException("Пользователь с email=%s уже существует.".formatted(email));
         } catch (Exception e) {
             log.error("Ошибка при изменении пользователя с id={}.", id, e);
             throw new UserServiceException("Внутренняя ошибка сервера.");
@@ -124,7 +118,6 @@ public class UserService {
                 log.warn("Пользователь с id={} не найден.", id);
                 throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
             }
-
             userDao.delete(user);
             log.info("Пользователь с id={} удалён.", id);
         } catch (IllegalArgumentException e) {

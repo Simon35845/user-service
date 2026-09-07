@@ -51,64 +51,47 @@ public class UserDao {
         }
     }
 
-    public boolean existsByEmail(String email){
-        try (Session session = sessionFactory.openSession()) {
-            String queryString = """
-                    SELECT EXISTS
-                    (SELECT 1 FROM UserEntity u
-                    WHERE u.email = :email)
-                    """;
-            return session
-                    .createQuery(queryString, Boolean.class)
-                    .setParameter("email", email)
-                    .getSingleResult();
-        }
-    }
-
     public UserEntity save(UserEntity user) {
-        Transaction transaction = null;
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.getTransaction();
-            transaction.begin();
+        Session session = sessionFactory.openSession();
+        try {
+            session.beginTransaction();
             session.persist(user);
-            transaction.commit();
+            session.getTransaction().commit();
             return user;
         } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            session.getTransaction().rollback();
             throw e;
+        } finally {
+            session.close();
         }
     }
 
     public UserEntity update(UserEntity user) {
-        Transaction transaction = null;
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.getTransaction();
-            transaction.begin();
+        Session session = sessionFactory.openSession();
+        try {
+            session.beginTransaction();
             UserEntity updatedUser = session.merge(user);
-            transaction.commit();
+            session.getTransaction().commit();
             return updatedUser;
         } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            session.getTransaction().rollback();
             throw e;
+        } finally {
+            session.close();
         }
     }
 
     public void delete(UserEntity user) {
-        Transaction transaction = null;
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.getTransaction();
-            transaction.begin();
+        Session session = sessionFactory.openSession();
+        try {
+            session.beginTransaction();
             session.remove(user);
-            transaction.commit();
+            session.getTransaction().commit();
         } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            session.getTransaction().rollback();
             throw e;
+        } finally {
+            session.close();
         }
     }
 }
