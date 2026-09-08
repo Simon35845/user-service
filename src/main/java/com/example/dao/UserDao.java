@@ -52,46 +52,43 @@ public class UserDao {
     }
 
     public UserEntity save(UserEntity user) {
-        Session session = sessionFactory.openSession();
-        try {
-            session.beginTransaction();
-            session.persist(user);
-            session.getTransaction().commit();
-            return user;
-        } catch (Exception e) {
-            session.getTransaction().rollback();
-            throw e;
-        } finally {
-            session.close();
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.beginTransaction();
+            try {
+                session.persist(user);
+                transaction.commit();
+                return user;
+            } catch (Exception e) {
+                transaction.rollback();
+                throw e;
+            }
         }
     }
 
     public UserEntity update(UserEntity user) {
-        Session session = sessionFactory.openSession();
-        try {
-            session.beginTransaction();
-            UserEntity updatedUser = session.merge(user);
-            session.getTransaction().commit();
-            return updatedUser;
-        } catch (Exception e) {
-            session.getTransaction().rollback();
-            throw e;
-        } finally {
-            session.close();
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.beginTransaction();
+            try {
+                UserEntity updatedUser = session.merge(user);
+                transaction.commit();
+                return updatedUser;
+            } catch (Exception e) {
+                transaction.rollback();
+                throw e;
+            }
         }
     }
 
     public void delete(UserEntity user) {
-        Session session = sessionFactory.openSession();
-        try {
-            session.beginTransaction();
-            session.remove(user);
-            session.getTransaction().commit();
-        } catch (Exception e) {
-            session.getTransaction().rollback();
-            throw e;
-        } finally {
-            session.close();
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.beginTransaction();
+            try {
+                session.remove(user);
+                transaction.commit();
+            } catch (Exception e) {
+                transaction.rollback();
+                throw e;
+            }
         }
     }
 }
