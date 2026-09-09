@@ -34,9 +34,3 @@ build/
 
 ### Mac OS ###
 .DS_Store
-# ========== ЛОГИ ==========
-/logs/
-logs/
-*.log
-*.log.gz
-*.log.zip
