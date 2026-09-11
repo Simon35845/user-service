@@ -1,6 +1,8 @@
 package com.example.dao;
 
 import com.example.entity.UserEntity;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.OptimisticLockException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -13,8 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers
 class UserDaoTest {
@@ -92,6 +93,57 @@ class UserDaoTest {
     void findAll() {
         List<UserEntity> users = userDao.findAll();
         assertEquals(3, users.size());
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void findByEmail_isUserExists() {
+        String email = "alice@example.com";
+        UserEntity expectedUser = new UserEntity("Alice", "alice@example.com", 24);
+        UserEntity actualUser = userDao.findByEmail(email);
+        assertEquals(expectedUser.getName(), actualUser.getName());
+        assertEquals(expectedUser.getEmail(), actualUser.getEmail());
+        assertEquals(expectedUser.getAge(), actualUser.getAge());
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void findByEmail_ifUserNotExists() {
+        String email = "notfound@test.ru";
+        assertThrows(
+                NoResultException.class,
+                () -> userDao.findByEmail(email)
+        );
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void delete_ifUserExists() {
+        Integer id = 3;
+        UserEntity deletedUser = userDao.findById(id);
+        assertNotNull(deletedUser);
+        userDao.delete(deletedUser);
+        UserEntity afterDelete = userDao.findById(id);
+        assertNull(afterDelete);
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void delete_ifUserNotExists() {
+        UserEntity deletedUser = new UserEntity("Alice", "notfounde@example.com", 24);
+        deletedUser.setId(99);
+        assertThrows(
+                OptimisticLockException.class,
+                () -> userDao.delete(deletedUser)
+        );
     }
 
     /**

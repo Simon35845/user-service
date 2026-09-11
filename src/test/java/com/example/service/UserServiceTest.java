@@ -2,6 +2,8 @@ package com.example.service;
 
 import com.example.dao.UserDao;
 import com.example.entity.UserEntity;
+import jakarta.persistence.NoResultException;
+import org.hibernate.HibernateException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,8 +14,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -128,5 +131,104 @@ class UserServiceTest {
         String expectedMessage = "Внутренняя ошибка сервера.";
         assertEquals(expectedMessage, exception.getMessage());
         verify(userDao).findAll();
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void findUserByEmail_ifUsersExists() throws UserServiceException {
+        UserEntity user = new UserEntity("test", "test@test.ru", 18);
+        when(userDao.findByEmail("test@test.ru")).thenReturn(user);
+        UserEntity result = userService.findUserByEmail("test@test.ru");
+        assertNotNull(result);
+        assertEquals("test@test.ru", result.getEmail());
+        verify(userDao).findByEmail("test@test.ru");
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void findUserByEmail_ifUserNotFoundTest() {
+        String email = "test@test.ru";
+        when(userDao.findByEmail(email)).thenThrow(new NoResultException());
+        UserServiceException ex = assertThrows(
+                UserServiceException.class, () -> userService.findUserByEmail(email)
+        );
+        assertEquals(
+                "Пользователь с email=test@test.ru не найден.",
+                ex.getMessage()
+        );
+        verify(userDao).findByEmail(email);
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void findUserByEmail_ifDatabaseError() {
+        String email = "test@test.ru";
+        when(userDao.findByEmail(email))
+                .thenThrow(new HibernateException("Database error"));
+        UserServiceException exception = assertThrows(
+                UserServiceException.class,
+                () -> userService.findUserByEmail(email)
+        );
+        assertEquals(
+                "Внутренняя ошибка сервера.",
+                exception.getMessage()
+        );
+        verify(userDao).findByEmail(email);
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void deleteUserById_ifUsersExists() throws UserServiceException {
+        UserEntity user = new UserEntity("test", "test@test.ru", 18);
+        user.setId(1);
+        when(userDao.findById(1)).thenReturn(user);
+        userService.deleteUserById(1);
+        verify(userDao).delete(user);
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void deleteUserById_ifUserNotFoundTest() {
+        Integer id = 1;
+        when(userDao.findById(id)).thenReturn(null);
+        UserServiceException ex = assertThrows(
+                UserServiceException.class, () -> userService.findUserById(id)
+        );
+        assertEquals(
+                "Пользователь с id=1 не найден.",
+                ex.getMessage()
+        );
+        verify(userDao).findById(id);
+        verify(userDao, never()).delete(any(UserEntity.class));
+    }
+
+    /**
+     * @author Yushinova
+     */
+    @Test
+    void deleteUserById_ifDatabaseError() {
+        Integer id = 1;
+        when(userDao.findById(id))
+                .thenThrow(new HibernateException("Database error"));
+        UserServiceException exception = assertThrows(
+                UserServiceException.class,
+                () -> userService.deleteUserById(id)
+        );
+        assertEquals(
+                "Внутренняя ошибка сервера.",
+                exception.getMessage()
+        );
+        verify(userDao).findById(id);
+        verify(userDao, never()).delete(any(UserEntity.class));
     }
 }
