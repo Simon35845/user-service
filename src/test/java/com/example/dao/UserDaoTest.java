@@ -63,6 +63,99 @@ class UserDaoTest {
     }
 
     /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void createUser_ifValid(){
+        UserEntity newUser = new UserEntity("Dave", "dave@example.com", 40);
+        assertNull(newUser.getId(), "До сохранения id должен быть null");
+
+        UserEntity savedUser = userDao.save(newUser);
+
+        assertNotNull(savedUser.getId(), "После сохранения id должен быть присвоен");
+        assertEquals("Dave", savedUser.getName());
+        assertEquals("dave@example.com", savedUser.getEmail());
+        assertEquals(40, savedUser.getAge());
+
+        UserEntity fromDb = userDao.findById(savedUser.getId());
+        assertNotNull(fromDb);
+        assertEquals("Dave", fromDb.getName());
+        assertEquals("dave@example.com", fromDb.getEmail());
+        assertEquals(40, fromDb.getAge());
+        assertNotNull(fromDb.getCreatedAt(), "createdAt должен проставиться через @PrePersist");
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void createUser_ifEmailDuplicate() {
+        UserEntity duplicate = new UserEntity("Fake Alice", "alice@example.com", 99);
+
+        assertThrows(
+                org.hibernate.exception.ConstraintViolationException.class,
+                () -> userDao.save(duplicate)
+        );
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void updateUserById_ifUserExists() {
+        UserEntity existing = userDao.findById(1);
+        assertNotNull(existing);
+
+        existing.setName("Alice Updated");
+        existing.setEmail("alice.updated@example.com");
+        existing.setAge(25);
+
+        UserEntity updated = userDao.update(existing);
+        assertNotNull(updated);
+        assertEquals(1, updated.getId());
+
+        UserEntity fromDb = userDao.findById(1);
+        assertNotNull(fromDb);
+        assertEquals("Alice Updated", fromDb.getName());
+        assertEquals("alice.updated@example.com", fromDb.getEmail());
+        assertEquals(25, fromDb.getAge());
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void updateUserById_ifUserNotExists() {
+        UserEntity ghost = new UserEntity("Ghost", "ghost@example.com", 30);
+        ghost.setId(999);
+
+        // Убеждаемся, что такого пользователя нет
+        assertNull(userDao.findById(999));
+
+        assertThrows(
+                jakarta.persistence.OptimisticLockException.class,
+                () -> userDao.update(ghost)
+        );
+
+        assertNull(userDao.findById(999));
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void updateUserById_ifEmailDuplicate() {
+        UserEntity bob = userDao.findById(2);
+        assertNotNull(bob);
+        bob.setEmail("charlie@example.com");
+
+        assertThrows(
+                org.hibernate.exception.ConstraintViolationException.class,
+                () -> userDao.update(bob)
+        );
+    }
+
+    /**
      * @author Simon35845
      */
     @Test

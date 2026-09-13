@@ -4,6 +4,7 @@ import com.example.dao.UserDao;
 import com.example.entity.UserEntity;
 import jakarta.persistence.NoResultException;
 import org.hibernate.HibernateException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,6 +27,156 @@ class UserServiceTest {
 
     @InjectMocks
     private UserService userService;
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void createUser_ifValid() throws UserServiceException {
+        String name = "Dave";
+        String email = "dave@example.com";
+        Integer age = 40;
+
+        UserEntity savedUser = new UserEntity(name, email, age);
+        savedUser.setId(1);
+        when(userDao.save(any(UserEntity.class))).thenReturn(savedUser);
+
+        UserEntity result = userService.createUser(name, email, age);
+
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals(name, result.getName());
+        assertEquals(email, result.getEmail());
+        assertEquals(age, result.getAge());
+        verify(userDao).save(any(UserEntity.class));
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void createUser_ifEmailAlreadyExists() {
+        String name = "Dave";
+        String email = "alice@example.com";
+        Integer age = 40;
+
+        when(userDao.save(any(UserEntity.class)))
+                .thenThrow(new ConstraintViolationException("duplicate key", null, "users_email_key"));
+
+        UserServiceException exception = assertThrows(
+                UserServiceException.class,
+                () -> userService.createUser(name, email, age)
+        );
+        assertEquals(
+                "Пользователь с email=alice@example.com уже существует.",
+                exception.getMessage()
+        );
+        verify(userDao).save(any(UserEntity.class));
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void createUser_ifDatabaseError() {
+        String name = "Dave";
+        String email = "dave@example.com";
+        Integer age = 40;
+
+        when(userDao.save(any(UserEntity.class)))
+                .thenThrow(new HibernateException("Database error"));
+
+        UserServiceException exception = assertThrows(
+                UserServiceException.class,
+                () -> userService.createUser(name, email, age)
+        );
+        assertEquals("Внутренняя ошибка сервера.", exception.getMessage());
+        verify(userDao).save(any(UserEntity.class));
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void updateUserById_ifUserExists() throws UserServiceException {
+        Integer id = 1;
+        UserEntity existingUser = new UserEntity("Alice", "alice@example.com", 24);
+        existingUser.setId(id);
+        when(userDao.findById(id)).thenReturn(existingUser);
+
+        UserEntity updatedUser = new UserEntity("Alice Updated", "alice.new@example.com", 25);
+        updatedUser.setId(id);
+        when(userDao.update(any(UserEntity.class))).thenReturn(updatedUser);
+
+        UserEntity result = userService.updateUserById(id, "Alice Updated", "alice.new@example.com", 25);
+
+        assertNotNull(result);
+        assertEquals(id, result.getId());
+        assertEquals("Alice Updated", result.getName());
+        assertEquals("alice.new@example.com", result.getEmail());
+        assertEquals(25, result.getAge());
+        verify(userDao).findById(id);
+        verify(userDao).update(any(UserEntity.class));
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void updateUserById_ifUserNotExists() {
+        Integer id = 99;
+        when(userDao.findById(id)).thenReturn(null);
+
+        UserServiceException exception = assertThrows(
+                UserServiceException.class,
+                () -> userService.updateUserById(id, "Ghost", "ghost@example.com", 30)
+        );
+        assertEquals("Пользователь с id=99 не найден.", exception.getMessage());
+        verify(userDao).findById(id);
+        verify(userDao, never()).update(any(UserEntity.class));
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void updateUserById_ifEmailAlreadyExists() {
+        Integer id = 1;
+        UserEntity existingUser = new UserEntity("Alice", "alice@example.com", 24);
+        existingUser.setId(id);
+        when(userDao.findById(id)).thenReturn(existingUser);
+
+        when(userDao.update(any(UserEntity.class)))
+                .thenThrow(new ConstraintViolationException("duplicate key", null, "users_email_key"));
+
+        UserServiceException exception = assertThrows(
+                UserServiceException.class,
+                () -> userService.updateUserById(id, "Alice", "bob@example.com", 24)
+        );
+        assertEquals(
+                "Пользователь с email=bob@example.com уже существует.",
+                exception.getMessage()
+        );
+        verify(userDao).findById(id);
+        verify(userDao).update(any(UserEntity.class));
+    }
+
+    /**
+     * @author FlameFlow21 (Shundev Kirill)
+     */
+    @Test
+    void updateUserById_ifDatabaseError() {
+        Integer id = 1;
+        when(userDao.findById(id)).thenThrow(new HibernateException("Database error"));
+
+        UserServiceException exception = assertThrows(
+                UserServiceException.class,
+                () -> userService.updateUserById(id, "Alice", "alice@example.com", 24)
+        );
+        assertEquals("Внутренняя ошибка сервера.", exception.getMessage());
+        verify(userDao).findById(id);
+        verify(userDao, never()).update(any(UserEntity.class));
+    }
 
     /**
      * @author Simon35845
