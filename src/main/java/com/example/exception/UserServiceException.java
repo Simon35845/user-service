@@ -1,11 +1,15 @@
-package com.example.service;
+package com.example.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Класс используется для передачи сообщения об ошибке при возникновении исключений в UserService.
  *
  * @author Simon35845
  */
-public class UserServiceException extends Exception {
+@ResponseStatus(HttpStatus.BAD_REQUEST)
+public class UserServiceException extends RuntimeException{
     public UserServiceException(String message) {
         super(message);
     }

@@ -1,130 +1,80 @@
 package com.example.service;
 
-import com.example.dao.UserDao;
+import com.example.dto.UserRequest;
+import com.example.dto.UserResponse;
 import com.example.entity.UserEntity;
-import jakarta.persistence.NoResultException;
-import org.hibernate.exception.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.exception.UserAlreadyExistsException;
+import com.example.exception.UserNotFoundException;
+import com.example.mapper.UserMapper;
+import com.example.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
+
+import static com.example.mapper.UserMapper.toEntity;
+import static com.example.mapper.UserMapper.toResponse;
 
 /**
- * Класс с бизнес-логикой приложения. Предоставляет безопасный доступ к CRUD методам UserDao с
- * обработкой исключений и логированием.
+ * Service с бизнес-логикой приложения и обработкой исключений.
  *
  * @author Yushinova (TATYANA YUSHINOVA)
  */
+@Service
 public class UserService {
+    private final UserRepository repository;
 
-    private final UserDao userDao;
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
-
-    public UserService(UserDao userDao) {
-        this.userDao = userDao;
+    public UserService(UserRepository repository) {
+        this.repository = repository;
     }
 
-    public UserEntity createUser(String name, String email, Integer age) throws UserServiceException {
-        log.info("Создание пользователя: name={}, email={}, age={}.", name, email, age);
+    @Transactional
+    public UserResponse createUser(UserRequest request) {
+        if (repository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Пользователь с таким mail " + request.getEmail() + " уже существует");
+        }
         try {
-            UserEntity userToSave = new UserEntity(name, email, age);
-            UserEntity savedUser = userDao.save(userToSave);
-            log.info("Пользователь успешно сохранён: {}.", savedUser);
-            return savedUser;
-        } catch (ConstraintViolationException e) {
-            log.warn("Пользователь с email={} уже существует.", email);
-            throw new UserServiceException("Пользователь с email=%s уже существует.".formatted(email));
-        } catch (Exception e) {
-            log.error("Ошибка при создании пользователя с email={}.", email, e);
-            throw new UserServiceException("Внутренняя ошибка сервера.");
+            UserEntity entity = toEntity(request);
+            UserEntity saved = repository.save(entity);
+            return toResponse(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserAlreadyExistsException("Пользователь с таким mail " + request.getEmail() + " уже существует");
         }
     }
 
-    public UserEntity findUserById(Integer id) throws UserServiceException {
-        log.info("Поиск пользователя по id={}.", id);
-        try {
-            UserEntity user = userDao.findById(id);
-            if (user == null) {
-                log.warn("Пользователь с id={} не найден.", id);
-                throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
-            }
-            log.info("Пользователь найден: {}.", user);
-            return user;
-        } catch (IllegalArgumentException e) {
-            throw new UserServiceException(e.getMessage());
-        } catch (Exception e) {
-            log.error("Ошибка при поиске пользователя по id={}.", id, e);
-            throw new UserServiceException("Внутренняя ошибка сервера.");
+    @Transactional
+    public UserResponse updateUser(Integer id, UserRequest request) {
+        UserEntity user = repository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с таким id " + id + " не найден"));
+        Optional<UserEntity> byEmail = repository.findByEmail(request.getEmail());
+        if (byEmail.isPresent() && !byEmail.get().getId().equals(id)) {
+            throw new UserAlreadyExistsException("Пользователь с таким mail " + request.getEmail() + " уже существует");
         }
+        user.setEmail(request.getEmail());
+        user.setName(request.getName());
+        user.setAge(request.getAge());
+        return toResponse(user);
     }
 
-    public UserEntity findUserByEmail(String email) throws UserServiceException {
-        log.info("Поиск пользователя по email={}", email);
-        try {
-            UserEntity user = userDao.findByEmail(email);
-            log.info("Пользователь найден: {}.", user);
-            return user;
-        } catch (NoResultException e) {
-            log.warn("Пользователь с email={} не найден.", email);
-            throw new UserServiceException("Пользователь с email=%s не найден.".formatted(email));
-        } catch (Exception e) {
-            log.error("Ошибка при поиске пользователя по email={}.", email, e);
-            throw new UserServiceException("Внутренняя ошибка сервера.");
-        }
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(Integer id) {
+        return repository.findById(id)
+                .map(UserMapper::toResponse)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с таким id " + id + " не найден"));
     }
 
-    public List<UserEntity> getAllUsers() throws UserServiceException {
-        log.info("Вывод всех пользователей.");
-        try {
-            List<UserEntity> users = userDao.findAll();
-            log.info("Найдено {} пользователей: .", users.size());
-            return users;
-        } catch (Exception e) {
-            log.error("Ошибка при выводе всех пользователей.", e);
-            throw new UserServiceException("Внутренняя ошибка сервера.");
-        }
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAll() {
+        return repository.findAll().stream().map(UserMapper::toResponse).toList();
     }
 
-    public UserEntity updateUserById(Integer id, String name, String email, Integer age) throws UserServiceException {
-        log.info("Изменение пользователя: id={} name={}, email={}, age={}.", id, name, email, age);
-        try {
-            UserEntity user = userDao.findById(id);
-            if (user == null) {
-                log.warn("Пользователь с id={} не найден.", id);
-                throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
-            }
-
-            user.setName(name);
-            user.setEmail(email);
-            user.setAge(age);
-            UserEntity updatedUser = userDao.update(user);
-            log.info("Пользователь успешно изменён: {}.", updatedUser);
-            return updatedUser;
-        } catch (IllegalArgumentException e) {
-            throw new UserServiceException(e.getMessage());
-        } catch (ConstraintViolationException e) {
-            log.warn("Пользователь с email={} уже существует.", email);
-            throw new UserServiceException("Пользователь с email=%s уже существует.".formatted(email));
-        } catch (Exception e) {
-            log.error("Ошибка при изменении пользователя с id={}.", id, e);
-            throw new UserServiceException("Внутренняя ошибка сервера.");
+    @Transactional
+    public void delete(Integer id) {
+        if (!repository.existsById(id)) {
+            throw new UserNotFoundException("Пользователь с id=" + id + " не найден");
         }
-    }
-
-    public void deleteUserById(Integer id) throws UserServiceException {
-        try {
-            UserEntity user = userDao.findById(id);
-            if (user == null) {
-                log.warn("Пользователь с id={} не найден.", id);
-                throw new IllegalArgumentException("Пользователь с id=%d не найден.".formatted(id));
-            }
-            userDao.delete(user);
-            log.info("Пользователь с id={} удалён.", id);
-        } catch (IllegalArgumentException e) {
-            throw new UserServiceException(e.getMessage());
-        } catch (Exception e) {
-            log.error("Ошибка при удалении пользователя с id={}.", id, e);
-            throw new UserServiceException("Внутренняя ошибка сервера.");
-        }
+        repository.deleteById(id);
     }
 }
