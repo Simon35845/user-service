@@ -1,8 +1,10 @@
 package com.example.dto;
 
 import jakarta.validation.constraints.*;
+
 /**
  * Класс, который приходит из контроллера
+ *
  * @author Yushinova (TATYANA YUSHINOVA)
  */
 public class UserRequest {
@@ -10,12 +12,12 @@ public class UserRequest {
     private String name;
 
     @NotBlank(message = "email обязателен")
-    @Email(regexp = ".+@.+\\..+")
+    @Email(regexp = ".+@.+\\..+", message = "Введите корректный email, например user@example.com")
     private String email;
 
     @NotNull(message = "Возраст обязателен")
-    @Min(value=0, message = "Возраст должен быть больше 0")
-    @Max(value=150, message = "Возраст не может быть больше 150 лет")
+    @Min(value = 0, message = "Возраст должен быть больше 0")
+    @Max(value = 150, message = "Возраст не может быть больше 150 лет")
     private Integer age;
 
     public UserRequest(String name, String email, Integer age) {
