@@ -34,9 +34,6 @@ class UserControllerTest {
     @MockitoBean   // ← новая аннотация
     private UserService userService;
 
-    // ============================================================
-    // 1. POST /users — создание пользователя
-    // ============================================================
 
     @Test
     @DisplayName("POST /users — создаёт пользователя и возвращает 201")
@@ -89,10 +86,6 @@ class UserControllerTest {
                 .andExpect(status().isConflict());
     }
 
-    // ============================================================
-    // 2. GET /users/{id} — получение по ID
-    // ============================================================
-
     @Test
     @DisplayName("GET /users/{id} — возвращает 200 и пользователя")
     void getUserById_ShouldReturn200_WhenUserExists() throws Exception {
@@ -119,10 +112,6 @@ class UserControllerTest {
         mockMvc.perform(get("/users/999"))
                 .andExpect(status().isNotFound());
     }
-
-    // ============================================================
-    // 3. GET /users — получение всех
-    // ============================================================
 
     @Test
     @DisplayName("GET /users — возвращает 200 и список пользователей")
@@ -153,10 +142,6 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size()").value(0));
     }
-
-    // ============================================================
-    // 4. PUT /users/{id} — обновление
-    // ============================================================
 
     @Test
     @DisplayName("PUT /users/{id} — возвращает 200 и обновлённого пользователя")
@@ -205,10 +190,6 @@ class UserControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
-
-    // ============================================================
-    // 5. DELETE /users/{id} — удаление
-    // ============================================================
 
     @Test
     @DisplayName("DELETE /users/{id} — возвращает 204")

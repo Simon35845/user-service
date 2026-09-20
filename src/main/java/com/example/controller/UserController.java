@@ -30,9 +30,7 @@ public class UserController {
         this.userService = userService;
     }
 
-    // ============================================================
-    // 1. СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ
-    // ============================================================
+
     @PostMapping
     @Operation(summary = "Создать пользователя", description = "Создаёт нового пользователя")
     @ApiResponses(value = {
@@ -45,9 +43,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // ============================================================
-    // 2. ПОЛУЧЕНИЕ ПОЛЬЗОВАТЕЛЯ ПО ID
-    // ============================================================
     @GetMapping("/{id}")
     @Operation(summary = "Получить пользователя по ID")
     @ApiResponses(value = {
@@ -59,9 +54,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // ============================================================
-    // 3. ПОЛУЧЕНИЕ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ
-    // ============================================================
     @GetMapping
     @Operation(summary = "Получить всех пользователей")
     @ApiResponse(responseCode = "200", description = "Список пользователей")
@@ -70,9 +62,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // ============================================================
-    // 4. ОБНОВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
-    // ============================================================
     @PutMapping("/{id}")
     @Operation(summary = "Обновить пользователя по ID")
     @ApiResponses(value = {
@@ -88,9 +77,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // ============================================================
-    // 5. УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
-    // ============================================================
     @DeleteMapping("/{id}")
     @Operation(summary = "Удалить пользователя по ID")
     @ApiResponses(value = {
